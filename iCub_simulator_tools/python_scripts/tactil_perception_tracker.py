@@ -14,28 +14,26 @@ import yarp
 ############ Import modules with specific functionalities ############
 
 ################ Import parameter from parameter file ################
-from example_parameter import CLIENT_PREFIX, ROBOT_PREFIX, skin_idx_r_hand, skin_idx_l_hand, skin_idx_r_forearm, skin_idx_l_forearm, skin_idx_r_arm, skin_idx_l_arm
+from examples.example_parameter import CLIENT_PREFIX, ROBOT_PREFIX, skin_idx_r_hand, skin_idx_l_hand, skin_idx_r_forearm, skin_idx_l_forearm, skin_idx_r_arm, skin_idx_l_arm
 
-######################################################################
-######################### Init YARP network ##########################
-######################################################################
-#print('----- Init network -----')
-yarp.Network.init()
-if not yarp.Network.checkNetwork():
-    sys.exit('[ERROR] Please try running yarp server')
 
 class TactilCollisionDetector:
     A = TypeVar("A", bool, List)
-    def __init__(self, armSec:int):
+    def __init__(self, armSec:int) -> None:
+        # print('----- Init network -----')
         yarp.Network.init()
+        if not yarp.Network.checkNetwork():
+            sys.exit('[ERROR] Please try running yarp server')
 
-        self.__armSeccion, self.__armSide_right, self.__armSide_left, self.flag = self.__keyConnection(armSec)
+        self.__armSeccion, self.__armSide_right, self.__armSide_left, self.flag = self.__keyConnection(armSec) # type: str, str, str, str
         self.__idx_skin_right, self.__idx_skin_left, self.numSensors = self.__idx_skin_arm(armSec)
 
-        print('----- Init network -----')
+        # print('----------------------- Init network ----------------------------------')
         self.__input_port_skin_right, self.__input_port_skin_left = self.__init_YARP_port()
 
     def __idx_skin_arm(self, part: int) -> Tuple[List, List, int]:
+        """@:parameters  recive a integer number
+        @:returns a tuple of two separated lists and a integer or index """
         if (part == 0):
             return skin_idx_r_hand, skin_idx_l_hand, 192
 
@@ -45,7 +43,9 @@ class TactilCollisionDetector:
         elif (part == 2):
             return skin_idx_r_arm, skin_idx_l_arm, 768
 
-    def __keyConnection(self, part: int) -> Tuple:
+    def __keyConnection(self, part: int) -> Tuple[str, str, str, str]:
+        ''' @:parameters recive a integer number
+        @:returns a tuple of four strings'''
 
         if (part == 0):
             flag: str = "hand"
@@ -73,9 +73,10 @@ class TactilCollisionDetector:
 
     def __init_YARP_port(self) -> Tuple[Any, Any]:
 
-        """ Open and connect YARP-Port to read right arm skin sensor data"""
+        """ Open and connect YARP-Port to read right arm skin sensor data
+        @:returns the input yarp ports in form of a tuple  """
 
-        input_port_skin_right:yarp.Port = yarp.Port()
+        input_port_skin_right: yarp.Port = yarp.Port()
         if not input_port_skin_right.open("/" + CLIENT_PREFIX + self.__armSeccion + "_right"):
             print("[ERROR] Could not open skin {} port!".format(self.__armSeccion))
         if not yarp.Network.connect("/" + ROBOT_PREFIX + self.__armSide_right, "/" + CLIENT_PREFIX + self.__armSeccion + "_right"):
@@ -90,18 +91,18 @@ class TactilCollisionDetector:
         return input_port_skin_right, input_port_skin_left
 
     def skin_sensor_reader(self) -> Tuple[List, List]:
-        """ return the data from both skin sensors"""
-        print('--------------reading data sensors of the {}-------------'.format(self.flag) )
+        """ @:returns the data from both skin sensors as a list of lists"""
+        # print('--------------reading data sensors of the {}-------------'.format(self.flag) )
         return self.__skin_sensor_data_reader_right(), self.__skin_sensor_data_reader_left()
 
     def __skin_sensor_data_reader_right(self) -> A:
         """Read skin sensor data from the right hand"""
-        print('---------------right {} with {} sensors-------------------'.format(self.flag, self.numSensors))
+        # print('----------------right {} with {} sensors-----------------'.format(self.flag, self.numSensors))
         tactile_arm: yarp.Vector = yarp.Vector(self.numSensors)
         while(not self.__input_port_skin_right.read(tactile_arm)):
             print("none right conection!")
             yarp.delay(0.001)
-            self.__input_port_skin_right.read(tactile_arm)
+            #self.__input_port_skin_right.read(tactile_arm)
         #self.__input_port_skin_right.read(tactile_arm)
 
         data_hand: List = []
@@ -110,19 +111,19 @@ class TactilCollisionDetector:
                 #print("read Data Right: {}".format(j),tactile_hand.get(j))
                 data_hand.append(tactile_arm.get(j))
 
-        print("Data right {}:".format(self.flag))
-        print(data_hand)
+        # print("Data right {}:".format(self.flag))
+        #print(data_hand)
         #time.sleep(0.5)
         return data_hand
 
     def __skin_sensor_data_reader_left(self) -> A:
         """Read skin sensor data from the left hand """
-        print('---------------left {} with {} sensors-------------------'.format(self.flag, self.numSensors))
+        # print('---------------left {} with {} sensors-------------------'.format(self.flag, self.numSensors))
         tactile_arm_l: yarp.Vector = yarp.Vector(self.numSensors)
         while(not self.__input_port_skin_left.read(tactile_arm_l)):
             print("none left conection!")
             yarp.delay(0.001)
-            self.__input_port_skin_left.read(tactile_arm_l)
+            #self.__input_port_skin_left.read(tactile_arm_l)
         #self.__input_port_skin_left.read(tactile_arm_l)
 
         data_hand_l: List = []
@@ -131,15 +132,15 @@ class TactilCollisionDetector:
                 #print("read Data Left: {}".format(j), tactile_hand_l.get(j))
                 data_hand_l.append(tactile_arm_l.get(j))
 
-        print("Data left {}:".format(self.flag))
-        print(data_hand_l)
-        #time.sleep(0.5)
+        # print("Data left {}:".format(self.flag))
+        # print(data_hand_l)
+        # time.sleep(0.5)
         return data_hand_l
 
     def closing_programm(self):
         """Delete objects/models and close ports, network, motor cotrol """
 
-        print('----- Close opened ports -----')
+        #print('------------- Close opened ports -------------')
         # disconnect the ports
 
         if not yarp.Network.disconnect("/" + ROBOT_PREFIX + self.__armSide_right, self.__input_port_skin_right.getName()):
@@ -156,10 +157,15 @@ class TactilCollisionDetector:
 
 
 if __name__ == "__main__":
-    contact: TactilCollisionDetector = TactilCollisionDetector(armSec=1)
-    contact.skin_sensor_reader()
-    #contact.skin_sensor_reader()
-    time.sleep(0.5)
-    contact.closing_programm()
+    # contact: TactilCollisionDetector = TactilCollisionDetector(armSec=1)
+    # contact.skin_sensor_reader()
+    # #for _ in range(5):
+    #
+    #     # contact.skin_sensor_reader()
+    #     # #contact.skin_sensor_reader()
+    #     # time.sleep(0.5)
+    # contact.closing_programm()
+
+    pass
 
 

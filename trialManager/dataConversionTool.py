@@ -16,4 +16,3 @@ class DataConversionTool:
 
     def __convertToDataFrame(self, data: List[List]) -> DataFrame:
         return DataFrame(data);
-

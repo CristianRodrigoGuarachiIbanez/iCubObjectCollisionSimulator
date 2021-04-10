@@ -1,27 +1,46 @@
 from featureRetrieval import TrialRetriever
 from groundTruthRetrieval import GroundTruthRetriever
 from cython import declare, locals
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, TypeVar
 from numpy import ndarray
+from cython import declare, locals, char, array, bint
 
-@locals()
-def main()-> int:
+@locals(fileName=char)
+def featureData(fileName: str)-> Dict[str, ndarray] :
     trial: TrialRetriever = TrialRetriever();
-
     # recover cvs data in trials
-    left_hand: Dict[str, ndarray] = trial.callTrialDataArrAsDict('left_hand');
-    right_hand: Dict[str, ndarray] = trial.callTrialDataArrAsDict('right_hand')
-    left_forearm: Dict[str, ndarray] = trial.callTrialDataArrAsDict('left_forearm');
-    right_forearm: Dict[str, ndarray] = trial.callTrialDataArrAsDict('right_forearm');
-    left_arm: Dict[str, ndarray] = trial.callTrialDataArrAsDict('left_arm');
-
-
+    return trial.callTrialDataArrAsDict(fileName);
+@locals(fileName=char)
+def imgData(fileName: str) ->  Dict[str, ndarray]:
+    trial: TrialRetriever = TrialRetriever();
     # recover img array data as trials
     # ojo always binocular img array has to be called first in order for scene to get the data
-    binoImgArr: Dict[str, ndarray] = trial.callImgDataArr('binocular_img')
-    sceneImgArr: Dict[str, ndarray] = trial.callImgDataArr('scene_img')
+    if(fileName =='binocular_img'):
+        return trial.callImgDataArr(fileName);
+    elif(fileName =='scene_img'):
+        return trial.callImgDataArr(fileName);
 
-    print(len(left_hand))
-    print(len(right_hand))
-    print(len(binoImgArr))
-    print(len(sceneImgArr))
+T: TypeVar = TypeVar('T',Dict[str, int], List[str], str)
+@locals(fileName=char, colRate=bint)
+def labelData(fileName: str, colRate: str='sum') -> T:
+    '''
+
+    :param fileName: string file name
+    :param colRate: sum, key
+    :return: a sum of all collisions and non collisions separately
+    '''
+    gt: GroundTruthRetriever = GroundTruthRetriever();
+    dictionary: Dict[str, int] = gt.groundTruthRetrievalOnTrial(fileName);
+    if (colRate == 'sum'):
+        return gt.sumValuesDict(dictionary);
+    elif(colRate == 'key'):
+        return gt.getKeysDict(dictionary);
+    return dictionary
+
+
+if __name__ == '__main__':
+
+    pass
+
+
+

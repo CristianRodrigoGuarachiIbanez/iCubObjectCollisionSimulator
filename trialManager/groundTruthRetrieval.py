@@ -91,13 +91,14 @@ class GroundTruthRetriever(BuildDirector):
 
 
 if __name__ == '__main__':
-    gtData: GroundTruthRetriever = GroundTruthRetriever();
-    left_hand: Dict[str, int] = gtData.groundTruthRetrievalOnTrial('left_hand');
-    right_hand: Dict[str, int] = gtData.groundTruthRetrievalOnTrial('right_hand')
-    collisionRate: str =  gtData.sumValuesDict(right_hand)
-    collisionItems: List[str] = gtData.getKeysDict(right_hand)
-
-    print(left_hand, end="\n");
-    print(right_hand);
-    print(collisionRate)
-    print(collisionItems)
+    # gtData: GroundTruthRetriever = GroundTruthRetriever();
+    # left_hand: Dict[str, int] = gtData.groundTruthRetrievalOnTrial('left_hand');
+    # right_hand: Dict[str, int] = gtData.groundTruthRetrievalOnTrial('right_hand')
+    # collisionRate: str =  gtData.sumValuesDict(right_hand)
+    # collisionItems: List[str] = gtData.getKeysDict(right_hand)
+    #
+    # print(left_hand, end="\n");
+    # print(right_hand);
+    # print(collisionRate)
+    # print(collisionItems)
+    pass

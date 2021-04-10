@@ -62,9 +62,13 @@ class BuildDirector:
         else:
             print('data type dtype is not valid. Introduce one of the following: numpy or dataframe')
 
-    def buildBinocularArray(self, dataName:str) -> List[ndarray]:
+    def buildImgArray(self, dataName:str) -> List[ndarray]:
         self.__recoverImgArrayProduct();
-        return self._builder.readSpecificImgArray(dataName);
+        if(dataName =='binocular_img'):
+            return self._builder.readSpecificImgArray(dataName);
+        elif(dataName == 'scene_img'):
+            return self._builder.readSpecificImgArray(dataName);
+
 
     def buildSceneArray(self, dataName: str) -> List[ndarray]:
         #self.__recoverImgArrayProduct();
@@ -79,8 +83,8 @@ if __name__ == "__main__":
 
     #left_arm: DataFrame = buildDirector.buildIndividualDataFrame("left_arm");
     head: ndarray = buildDirector.buildIndividualDataFrame("left_hand");
-    bi: List[ndarray] = buildDirector.buildBinocularArray("binocular_img");
-    sc: List[ndarray] = buildDirector.buildSceneArray()
+    bi: List[ndarray] = buildDirector.buildImgArray("binocular_img");
+    #sc: List[ndarray] = buildDirector.buildSceneArray()
     print("LEFT HAND", len(buildDirector.buildIndividualDataFrame("left_hand")));
     print("IMG:", len(bi));
 

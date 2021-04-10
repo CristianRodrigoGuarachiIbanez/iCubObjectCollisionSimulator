@@ -21,9 +21,9 @@ class TrialRetriever:
     def callImgDataArr(self, dataName: str, trialSize: int = 15) -> Dict[str,ndarray]:
         data: List[ndarray] = None;
         if(dataName == 'binocular_img'):
-            data = self._buildDirector.buildBinocularArray(dataName);
+            data = self._buildDirector.buildImgArray(dataName);
         elif(dataName =='scene_img'):
-            data = self._buildDirector.buildSceneArray(dataName);
+            data = self._buildDirector.buildImgArray(dataName);
         else:
             print('binocular_img or scene_img')
         counterF: int = 1;
@@ -96,24 +96,25 @@ class TrialRetriever:
 
 
 if __name__ == '__main__':
-    trial: TrialRetriever = TrialRetriever();
-    # example data as dict
-    #left_hand: ndarray = trial.callTrialDataArr('left_hand');
-    #right_hand: ndarray = trial.callTrialDataArr('right_hand')
-
-    # recover cvs data in trials
-    left_hand: Dict[str, ndarray] = trial.callTrialDataArrAsDict('left_hand');
-    right_hand: Dict[str, ndarray] = trial.callTrialDataArrAsDict('right_hand')
-
-    # recover img array data as trials
-    # ojo always binocular img array has to be called first in order for scene to get the data
-    binoImgArr: Dict[str, ndarray] = trial.callImgDataArr('binocular_img')
-    sceneImgArr: Dict[str, ndarray] = trial.callImgDataArr('scene_img')
-
-    print(len(left_hand))
-    print(len(right_hand))
-    print(len(binoImgArr))
-    print(len(sceneImgArr))
+    # trial: TrialRetriever = TrialRetriever();
+    # # example data as dict
+    # #left_hand: ndarray = trial.callTrialDataArr('left_hand');
+    # #right_hand: ndarray = trial.callTrialDataArr('right_hand')
+    #
+    # # recover cvs data in trials
+    # left_hand: Dict[str, ndarray] = trial.callTrialDataArrAsDict('left_hand');
+    # right_hand: Dict[str, ndarray] = trial.callTrialDataArrAsDict('right_hand')
+    #
+    # # recover img array data as trials
+    # # ojo always binocular img array has to be called first in order for scene to get the data
+    # binoImgArr: Dict[str, ndarray] = trial.callImgDataArr('binocular_img')
+    # sceneImgArr: Dict[str, ndarray] = trial.callImgDataArr('scene_img')
+    #
+    # print(len(left_hand))
+    # print(len(right_hand))
+    # print(len(binoImgArr))
+    # print(len(sceneImgArr))
+    pass
 
 
 

@@ -1,5 +1,3 @@
-# KollisionErkennung_MA
-
 # Short intro to the iCub control system
 The iCub is not controlled low-level by communicating directly with the hardware. This would be very complicated and the software would be very robot specific. Therefore a robotic middleware is used to wrap the hardware control. In the case of the iCub it is [YARP](http://www.yarp.it/index.html). [Here](http://www.yarp.it/what_is_yarp.html) it is explained more detailed. For a deeper dive into the yarp ecosphere see the [tutorials](http://www.yarp.it/tutorials.html)
 

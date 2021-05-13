@@ -3,15 +3,15 @@ The iCub is not controlled low-level by communicating directly with the hardware
 
 The YARP-control is based on devices with a [port-based communication system](http://www.yarp.it/note_ports.html). This allows the distribution of program modules on different machines. Enabling the possibility to use different OS in the same control project and the computational power of clusters. 
 
-There are devices for all the different features. The plan in this documentation is, to give a short overview for the most important ones. The first section is the motor control system. The visual and tactile sensing will follow soon. 
+There are devices for all the different features. The plan in this documentation is, to give a short overview for the most important ones: the motor control system, the visual and tactile sensing systems. 
 
 ## Programming with the iCub 
 To facilitate the programming of software using the iCub, there exists two packages, which wrap parts of the YARP-based control.
 
-The first one is a set of [Python "Libraries"](https://ai.informatik.tu-chemnitz.de/gogs/iCub_TUC/iCub_Python_Lib.git), which contains methods for motor control (at the moment only Position and Velocity) and visual perception. Beside there are classes for manipulating the simulation worlds in the iCub- or gazebo-simulator, using the YARP-worldinterface. Which inludes object and 3D-model manipulation.
+The first one is a set of [Python "Libraries"](https://ai.informatik.tu-chemnitz.de/gogs/iCub_TUC/iCub_Python_Lib.git), which contains methods for motor control and visual perception. Beside there are classes for manipulating the simulation worlds in the iCub- or gazebo-simulator, using the YARP-worldinterface. Which inludes object and 3D-model manipulation.
 
 The second package is designed as an interface between the iCub robot and ANNarchy. This consists of different modules for the sensor and actuator control.  
-I consists of four modules:
+It consists of four modules:
 - JointWriter:
     - This module handles the joint motion. At this point for the joint control only the Position control is included. The control is extended with the possiblity to directly feed population-coded joint angles to the robot.
 - JointReader:

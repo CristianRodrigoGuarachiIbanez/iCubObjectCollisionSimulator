@@ -3,7 +3,9 @@ import random
 import numpy as np
 
 from h5py import File
-from keras.models import load_model
+from pickle import dump, load
+from typing import List, Tuple
+from keras.models import load_model, Model
 from keras.preprocessing.image import ImageDataGenerator
 from keras.callbacks import History, ModelCheckpoint, ReduceLROnPlateau
 
@@ -25,14 +27,14 @@ def train(list_params, gpu_id, dataset_id, model_id, load_path, save_path,
 
     # train on ANet or MNIST (0)?
     if dataset_id > 0:
-        n_classes = 7
+        n_classes = 7 # ------ OUTPUT
     # train on high-res input?
     if dataset_id<2:
-        input_shape = config['input_shape']
+        input_shape = config['input_shape_scene']
     elif dataset_id==2:
-        input_shape = config['input_shape_400']
+        input_shape = config['input_shape_binocular']
     else:
-        input_shape = config['input_shape_200']
+        input_shape = config['input_shape_scene']
     # create output directory
     save_path = './output/'+save_path+'/'
     if not os.path.exists(save_path):
@@ -47,10 +49,10 @@ def train(list_params, gpu_id, dataset_id, model_id, load_path, save_path,
 
     # create the EDRAM model
     print("[Info] Creating the model...")
-
+    model: Model = None;
     if (load_path != '.'):
         model_path = load_path + 'model.h5'
-        print ("[Info] Loading the model from:", model_path,"\n")
+        print("[Info] Loading the model from:", model_path,"\n")
         try:
             model = load_model(model_path)
         except:
@@ -76,6 +78,7 @@ def train(list_params, gpu_id, dataset_id, model_id, load_path, save_path,
                                 bn=use_batch_norm, dropout=dropout, use_weighted_loss=use_weighted_loss,
                                 localisation_cost_factor=localisation_cost_factor)
         elif model_id==2:
+            #
             model = tedram_model(input_shape, batch_size, learning_rate, n_steps,
                                 glimpse_size, coarse_size, hidden_init=0,
                                 n_filters=128, filter_sizes=(3,5), n_features=fc_dim,
@@ -104,42 +107,53 @@ def train(list_params, gpu_id, dataset_id, model_id, load_path, save_path,
 
     # --------- load the data
     data_path: str = datasets[dataset_id]
+    labels_path: str = datasets[1]
     print("\n[Info] Opening", data_path)
     data: File = None;
+    labels: List[int] = None;
     try:
-        data = File(data_path, 'r')
+        data = File(data_path, 'r') ##### HIER MUSS MAN DIE GROUPS
+        with open(labels_path, 'rb') as file:
+            labels = load(file)
     except Exception as e:
         print("[Error]", e)
         exit()
-    # --------- split into train and test set
+    # -------------------------------- split into train and test set
     n_train, n_test, t = 0, 0, 0 #type: int, int, int
     if dataset_id==0:
         n_train = 60000
         n_test = 10000
-    elif dataset_id==1:
-        n_train = 282595
-        n_test = data['features'].shape[0] - n_train
+
+    elif dataset_id==1: # define the indices
+        n_train = 26788 # 70% of 38352
+        n_test = data['features_data']['sceneDataRight'].shape[0] - n_train # shape the data(38352, 120, 160)
+
     else:
-        t = 100000
+        t  = 100000
         train = data['Train']
         while train[t] == b'train':
             t = t+1
         n_train = t-1
         n_test = data['Y_lab'].shape[0] - n_train
 
-    if dataset_id<2:
-        train_images = data['features'][:n_train]
-        train_labels = data['labels'][:n_train]
-        train_locations = data['locations'][:n_train]
+    train_images, train_labels, train_locations = None, None, None #type: ndarray, ndarray;
+
+    if dataset_id<2: # define the length of the set according the predefined indices
+        train_images = data['features']['sceneDataRight'][:n_train]
+        #train_labels = data['labels'][:n_train] ## --------------------------- labels
+        train_labels = labels[:n_train]
+        #train_locations = data['locations'][:n_train]
         if output_emotion_dims:
             train_dims1 = data['dimensions'][:n_train]
             train_dims2 = None
         else:
             train_dims1 = None
             train_dims2 = None
-        test_images = data['features'][n_train:]
-        test_labels = data['labels'][n_train:]
-        test_locations = data['locations'][n_train:]
+
+        test_images = data['features_data'][n_train:]
+        #test_labels = data['labels'][n_train:]
+        test_labels  = data[:n_train]
+        #test_locations = data['locations'][n_train:]
         if output_emotion_dims:
             test_dims1 = data['dimensions'][n_train:]
             test_dims2 = None
@@ -150,7 +164,7 @@ def train(list_params, gpu_id, dataset_id, model_id, load_path, save_path,
         n = n_train//1
         train_images = data['X'][:n]
         train_labels = data['Y_lab'][:n]
-        train_locations = None
+        #train_locations = None
         if output_emotion_dims:
             train_dims1 = data['Y_val'][:n]
             train_dims2 = data['Y_ars'][:n]

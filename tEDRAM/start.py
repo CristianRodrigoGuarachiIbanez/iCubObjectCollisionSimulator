@@ -19,10 +19,10 @@ from train import train
 #####################################
 
 _learning_rate = 0.0001
-_batch_size = 192
+_batch_size = 10
 _model_id = 2
-_n_steps = 6
-_n_epochs = 25
+_n_steps = 10
+_n_epochs = 1 #25
 
 
 def main(list_params, gpu_id, dataset_id, model_id, load_path, save_path,

@@ -445,7 +445,9 @@ def tedram_model(input_shape=(10,120,160), batch_size=192, learning_rate=0.0001,
     edram_cell: List[Model] = []
     # STEPS should be set to 10
     for i in range(0, steps):
-        edram_cell.append(tedram_cell(input_shape[:,i], batch_size, glimpse_size, n_filters, filter_size1,
+
+        print(input_shape)
+        edram_cell.append(tedram_cell(input_shape[i], batch_size, glimpse_size, n_filters, filter_size1,
                                        n_features, RNN_size_1, RNN_size_2, n_classes,
                                        bn, dropout, clip_value[i], layers,
                                        output_localisation, output_emotion_dims,

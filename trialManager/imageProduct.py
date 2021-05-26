@@ -3,6 +3,7 @@ from typing import List
 class ImgArrayProduct:
     def __init__(self) -> None:
         self.__binocularImgArray: List[ndarray] = list();
+        #print(self.__binocularImgArray)
         self.__sceneImgArray: List[ndarray] = list();
 
     def getBinocularImgArray(self) -> List[ndarray]:

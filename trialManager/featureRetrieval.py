@@ -1,4 +1,4 @@
-from typing import List, Tuple, Any, Dict
+from typing import List, Tuple, Any, Dict, Generator
 from buildDirector import BuildDirector
 from productBuilder import ProductBuilder
 from numpy import ndarray, float as Float, hstack, asarray, delete, double, float32
@@ -26,6 +26,7 @@ class TrialRetriever:
             data = self._buildDirector.buildImgArray(dataName);
         else:
             print('binocular_img or scene_img')
+            raise AssertionError("this data names are not available")
         counterF: int = 1;
         counterT: int = 1;
         imgArrayDict: Dict[str, ndarray] = dict();
@@ -38,10 +39,16 @@ class TrialRetriever:
                     counterF =1;
                     counterT +=1;
         return imgArrayDict
+    @staticmethod
+    @cython.locals(data=List[ndarray])
+    def __genImgArray(data: List[ndarray]) -> Generator:
+        for arr in data:
+            for imgArr in arr:
+                yield imgArr
 
     @cython.locals(dataName=cython.char)
     def callTrialDataArr(self, dataName: str, stringArr: bool = True) -> ndarray:
-        data: ndarray = self._buildDirector.buildIndividualDataFrame(dataName)
+        data: ndarray = self._buildDirector.buildCoordinateData(dataName)
         if(stringArr):
             return data;
         else:
@@ -55,8 +62,8 @@ class TrialRetriever:
             return asarray(dataArr);
 
     @cython.locals(data=cython.array, trialSize=cython.int)
-    def callTrialDataArrAsDict(self, dataName: str, trialSize: int =15) -> Dict[str, ndarray]:
-        data: ndarray = self._buildDirector.buildIndividualDataFrame(dataName);
+    def callTrialDataArrAsDict(self, dataName: str, trialSize: int =10) -> Dict[str, ndarray]:
+        data: ndarray = self._buildDirector.buildCoordinateData(dataName);
         counterF: int = 1;
         counterT: int = 1;
         currRow: ndarray = None;

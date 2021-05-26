@@ -23,5 +23,5 @@ class FilesExtensionClassifier:
         for files in filesList:
             if files.endswith(extension):
                 csvFiles.append(files)
-                logging.info("the extension file {} could not be sorted properly".format(extension))
+                # logging.info("the extension file {} could not be sorted properly".format(extension))
         return csvFiles;

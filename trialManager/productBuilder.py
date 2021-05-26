@@ -8,6 +8,7 @@ from filesExtensionClassifier import FilesExtensionClassifier
 from pandas import read_csv, DataFrame, concat
 from groundTruthProduct import GroundTruthCollector
 from imageProduct import ImgArrayProduct;
+from imageEditor import ImageEditor
 from numpy import ndarray
 import logging
 logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
@@ -27,10 +28,15 @@ class ProductBuilder(BuilderInterface):
 
     def __reset(self) -> None:
 
+        #collect csv data
         self._csvDataCollector: CSVDataCollector = CSVDataCollector();
-        self.__trialsManager: TrialManager = TrialManager()
-        #
+        # collect img array data
         self.__imgArrayCollector: ImgArrayProduct = ImgArrayProduct();
+        # init trial manager
+        self.__trialsManager: TrialManager = TrialManager()
+        # init img editor
+        self.__imgEditor: ImageEditor = ImageEditor();
+
 
     @property
     def csvProduct(self) -> CSVDataCollector:
@@ -54,10 +60,12 @@ class ProductBuilder(BuilderInterface):
 
     # --------------------------- img data array ---------------
     @locals(zipFileName=char)
-    def __produceImgArrayFromH5File(self, zipFileName: str) -> None:
+    def __produceImgArrayFromH5File(self, zipFileName: str, h5pyfile: str) -> None:
         '''
         :param zipFileName: string;
         :param index: digit;
+        :param h5pyfile: string name of the h5 file to extract
+        :param direction: string direction indication of the zip file to look into
         '''
         fileClassifier: FilesExtensionClassifier = FilesExtensionClassifier();
         with ZipFile(zipFileName, "r") as zipClass:
@@ -67,12 +75,15 @@ class ProductBuilder(BuilderInterface):
             sortedZipFiles: List[str] = fileClassifier.grabFilesWithExtensionH5(zipFiles);  # zip file names sorting according to extension
             self.__trialsManager.ZipClass = zipClass;
             self.__trialsManager.imgCollector = self.__imgArrayCollector;
-            # print(sortedZipFiles)
-            for hp5files in sortedZipFiles:
-               try:
-                   self.__trialsManager.saveRecoveredImgData(hp5files);
-               except Exception as e:
-                   logging.info(e);
+            self.__trialsManager.imgEditor = self.__imgEditor
+            #print(sortedZipFiles)
+            for i in range(len(sortedZipFiles)):
+                try:
+                    if(sortedZipFiles[i] == h5pyfile):
+                        self.__trialsManager.saveRecoveredImgData(sortedZipFiles[i]);
+                    else: pass
+                except Exception as e:
+                   logging.info('PRODUCT BUILDER -> PRODUCE IMG ARRAY:',e);
 
     # -------------------------  csv data --------------------------------------
     @locals(zipFileName=char)
@@ -84,26 +95,35 @@ class ProductBuilder(BuilderInterface):
             :param flag: boolen value
             '''
             fileClassifier: FilesExtensionClassifier = FilesExtensionClassifier()
+
             with ZipFile(zipFileName, "r") as zipClass:
                 #print("succefully imported")
-                # zip.printdir()
+                #counter: int = 0
+
                 zipFiles: List[str] = zipClass.namelist();  # names of the files in the Zip
-                sortedZipFiles: List[List[str]] = fileClassifier.sortFilesAccordingToExtentions(zipFiles, self.listOfFileEndings);  # zip file names sorting according to extension
+                sortedZipFiles: List[List[str]] = fileClassifier.sortFilesAccordingToExtentions(zipFiles, self.listOfFileEndings);  # zip file names sorting according to extension list[[csv],[h5],[png]]
                 self.__trialsManager.ZipClass = zipClass;
                 self.__trialsManager.csvCollector = self._csvDataCollector;
+                #print('LEN:',len(sortedZipFiles), sortedZipFiles[2])
 
                 #  ITERATE OVER EVERY SINGLE ELEMENT OF THE SORTED ZIP FILES
-                for zipFiles in sortedZipFiles:
-                    for fileWithExtension in zipFiles:
-                        #print(fileWithExtension)
-                        if (fileWithExtension.endswith(".csv") and not fileWithExtension.startswith("gt_")):  # select only the certain extension
-                            # GETS THE CONTENT OF FILES AND SAVES THEM ACCORDING TO EXTRACTED FILE ELEMENTS
-                            try:
-                                dataFrame: DataFrame = self.__trialsManager.generateDataFrame(fileWithExtension);
-                                self.__trialsManager.saveRecoveredCSVData(fileWithExtension, dataFrame);
-                            except Exception as e:
-                                print(e)
-                                print("data could not be saved")
+                sortedZipFilesCSV: List[str] =sortedZipFiles[0]
+
+                for i in range(len(sortedZipFilesCSV)):
+                    #print(fileWithExtension)
+                    if (sortedZipFilesCSV[i].endswith(".csv") and not sortedZipFilesCSV[i].startswith("gt_")):  # select only the certain extension
+                        # GETS THE CONTENT OF FILES AND SAVES THEM ACCORDING TO EXTRACTED FILE ELEMENTS
+                        try:
+                            #if(sortedZipFilesCSV[i] =='left_forearm'):
+                            # counter+=1;
+                            # else:
+                                #print(zipFileName)
+                            dataFrame: DataFrame = self.__trialsManager.generateDataFrame(sortedZipFilesCSV[i]);
+                            #if(sortedZipFilesCSV[i] =='hand_left.csv'): print(len(dataFrame)), print(zipFileName) #debug.append(len(dataFrame))
+                            self.__trialsManager.saveRecoveredCSVData(sortedZipFilesCSV[i], dataFrame);
+                        except Exception as e:
+                            print(e)
+                            print("data could not be saved")
 
     # ------------------------- extraction from Collectors ---------------------------------------------
     @locals(dataName=char)
@@ -117,11 +137,12 @@ class ProductBuilder(BuilderInterface):
         if(dataName=='binocular_img'):
             return listNumpyArrays.getBinocularImgArray();
         elif(dataName=='scene_img'):
-            return listNumpyArrays.getBinocularImgArray();
+            return listNumpyArrays.getSceneImgArray();
         else:
             logging.info("the numpy array name specification is not in the preselected array names")
             print("introduce one of the following array names:")
             print("binocular_img, scene_img")
+            raise AssertionError("the img array name specification is not in the preselected names");
 
     @locals(dataName=char)
     def readSpecificDataFile(self, dataName: str) -> DataFrame:
@@ -141,7 +162,7 @@ class ProductBuilder(BuilderInterface):
             return self.__convertToDataFrame(data.getForeArmRight());
         elif(dataName=="left_arm"):
             return self.__convertToDataFrame(data.getArmLeft());
-        elif(dataName=='right_arm'):
+        elif(dataName=="right_arm"):
             return self.__convertToDataFrame(data.getArmRight())
         elif(dataName=="joint_coord"):
             return self.__convertToDataFrame(data.getJointCoordData());
@@ -200,8 +221,8 @@ class ProductBuilder(BuilderInterface):
             logging.info("OUTSIDE, FOREARMLEFT:", len(data.getForeArmLeft()));
             logging.info("OUTSIDE, JOINTS:", len(data.getJointCoordData()));
 
-    def produceImgArray(self, zipFileName: str, flag: str = False) -> None:
-        self.__produceImgArrayFromH5File(zipFileName);
+    def produceImgArray(self, zipFileName: str, h5pyfile: str, flag: str = False) -> None:
+        self.__produceImgArrayFromH5File(zipFileName, h5pyfile=h5pyfile);
         if(flag):
             data: ImgArrayProduct = self.imgArrayProduct;
             logging.info("GETTING BINOCULAR NUMPY ARRAY:", len(data.getBinocularImgArray()));
@@ -209,6 +230,11 @@ class ProductBuilder(BuilderInterface):
 
 
 if __name__ == "__main__":
-
+    # from os import  listdir, getcwd
+    # product: ProductBuilder = ProductBuilder();
+    # for file in listdir(getcwd()):
+    #     if file.endswith(".zip"):
+    #         # print("DIRECTOR:",file);
+    #         product.produceImgArray(file, h5pyfile=);
 
     pass

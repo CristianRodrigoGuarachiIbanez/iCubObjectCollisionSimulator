@@ -20,5 +20,5 @@ class BuilderInterface(ABC):
         pass
 
     @abstractmethod
-    def produceImgArray(self, zipfileName: str, flag: str) -> None:
+    def produceImgArray(self, zipfileName: str, h5pyfile: str, flag: str) -> None:
         pass

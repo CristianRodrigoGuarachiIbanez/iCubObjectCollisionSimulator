@@ -82,7 +82,7 @@ def emission_weights(output_size: int, zoom_bias: int) -> List[ndarray]:
     return weights
 
 
-def tedram_cell(input_shape=(120,160), batch_size=192, glimpse_size=(26,26),
+def tedram_cell(input_shape=(120,160, 1), batch_size=192, glimpse_size=(26,26),
                  n_filters=128, filter_size=(3,3), n_features=1024,
                  RNN_size_1=512, RNN_size_2=512, n_classes=7,
                  bn=True, dropout=0, clip_value=1, layers=None,
@@ -261,7 +261,7 @@ def tedram_cell(input_shape=(120,160), batch_size=192, glimpse_size=(26,26),
     return Model(inputs, outputs, name='edram_cell_'+str(step))
 
 
-def tedram_model(input_shape=(10,120,160), batch_size=192, learning_rate=0.0001, steps=3,
+def tedram_model(input_shape=(10,120,160,1), batch_size=192, learning_rate=0.0001, steps=3,
                   glimpse_size=(26,26), coarse_size=(12,12), hidden_init=0,
                   n_filters=128, filter_sizes=(3,5), n_features=1024,
                   RNN_size_1=512, RNN_size_2=512, n_classes=7, output_mode=0,
@@ -446,8 +446,8 @@ def tedram_model(input_shape=(10,120,160), batch_size=192, learning_rate=0.0001,
     # STEPS should be set to 10
     for i in range(0, steps):
 
-        print(input_shape)
-        edram_cell.append(tedram_cell(input_shape[i], batch_size, glimpse_size, n_filters, filter_size1,
+        print('CALL TEDRAM CELL:', input_shape[0:])
+        edram_cell.append(tedram_cell(input_shape[0:], batch_size, glimpse_size, n_filters, filter_size1,
                                        n_features, RNN_size_1, RNN_size_2, n_classes,
                                        bn, dropout, clip_value[i], layers,
                                        output_localisation, output_emotion_dims,
@@ -493,17 +493,17 @@ def tedram_model(input_shape=(10,120,160), batch_size=192, learning_rate=0.0001,
 
     init_h2 = Reshape((RNN_size_2,), name = 'initial_hidden_state_2')(x)
 
-
     #############################
     ###  Assemble everything  ###
     #############################
 
     # step zero (initialization)
     step = [[None, init_matrix if output_mode==1 else input_matrix]]
-    # step 1
-    step.append(edram_cell[0]([input_image[0][0], init_matrix if use_init_matrix else input_matrix, init_h1, init_c1, init_h2, init_c2, b26, b24, b12, b6 if glimpse_size==(26,26) else b4, b4]))
+    # step 1, INPUT_IMAGE (None, 10, 120,160,1) -> input_image[0][0] -> (120,160,1)
+    step.append(edram_cell[0]([input_image[:, 0], init_matrix if use_init_matrix else input_matrix, init_h1, init_c1, init_h2, init_c2, b26, b24, b12, b6 if glimpse_size==(26,26) else b4, b4]))
     # "recurrently" apply edram network
     for i in range(1, steps):
+        print('INPUT IMAGE:', input_shape[:,i].shape);
         step.append(edram_cell[i]([input_image[:, i], step[i][1], step[i][2], step[i][3], step[i][4], step[i][5], b26, b24, b12, b6 if glimpse_size==(26,26) else b4, b4]))
 
 

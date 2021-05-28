@@ -18,7 +18,7 @@ def batch_generator(dataset_size: int, batch_size: int, init_state_size: Tuple, 
     indices: SequenceGenerator = SequenceGenerator(dataset_size//10, 10);
     inputs: Dict[str, ndarray] = None;
     outputs: Dict[str, ndarray] = None;
-
+    start, end = 0, 0 #type: int, int
     # iterate over the minibatches
     i: int = 0
     while True:
@@ -50,7 +50,7 @@ def batch_generator(dataset_size: int, batch_size: int, init_state_size: Tuple, 
         S1:zeros = zeros((batch_size, state_size_1), dtype='float32')
         S2:zeros = zeros((batch_size, state_size_2), dtype='float32')
         # biases
-        B1, B2, B3, B4, B5, B6 = None, None, None, None, None, None #type: ndarray, ndarray, ndarray, ndarray, ndarray, ndarray
+        B1, B2, B3, B4, B5, B6 = None, None, None, None, None, None #type: ndarray, ndarray, ndarray, ndarray, ndarray, ndarray;
         if glimpse_size==(26,26):
             B1 = ones((batch_size, 26, 26, 1), dtype='float32')
             B2 = ones((batch_size, 24, 24, 1), dtype='float32')
@@ -66,7 +66,7 @@ def batch_generator(dataset_size: int, batch_size: int, init_state_size: Tuple, 
             B5 = ones((batch_size, 6, 6, 1), dtype='float32')
             B6 = ones((batch_size, 4, 4, 1), dtype='float32')
         # target outputs
-        Y_dim, Y_loc, Y_cla = None, None; None; #type: ndarray, ndarray, ndarray
+        Y_dim, Y_loc, Y_cla = None, None, None; #type: ndarray, ndarray, ndarray
         #Y_cla = array(labels[samples, ...], dtype='float32')
         Y_cla = indices.samples(labels, start, end)
 
@@ -81,10 +81,12 @@ def batch_generator(dataset_size: int, batch_size: int, init_state_size: Tuple, 
                 pass
         if zoom==1:
             #Y_loc = array(locations[samples, ...], dtype='float32')
+            print('LOCATION GENERATOR:',locations)
             Y_loc = indices.samples(locations, start, end)
         else:
             Y_loc = zeros((batch_size,6), dtype='float32')
             Y_loc[:,(0,4)] = zoom
+            print("Y LOCATION BATCH GENERATOR:",Y_loc)
 
         # when using all outputs for training
         if (mode):
@@ -97,7 +99,8 @@ def batch_generator(dataset_size: int, batch_size: int, init_state_size: Tuple, 
                     Y_dim = reshape(Y_dim, (batch_size,1,2))
                     Y_dim = hstack([Y_dim for i in range(0, n_steps)])
 
-        i = i+1
+        i +=1
+
         if (batch_size*(i+1) > len(indices.getSequenceList())):
             i = 0
 

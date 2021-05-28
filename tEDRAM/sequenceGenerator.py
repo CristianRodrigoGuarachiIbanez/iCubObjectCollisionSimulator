@@ -13,6 +13,13 @@ class SequenceGenerator:
 		return self.__indexSequenceList();
 
 	def samples(self, features: ndarray, start: int, end: int) -> ndarray:
+		'''
+
+		:param features: multidimentional input arrays (120,160,1)
+		:param start: integer start index
+		:param end: integer end index
+		:return: a numpy array containing the input image arrays sequences
+		'''
 		listOfSequnces: List[ndarray] = list();
 		counter: int = end
 		generator: Generator = self.sequencesOfIndices(start, end);

@@ -4,7 +4,8 @@ import numpy as np
 
 from h5py import File
 from pickle import dump, load
-from typing import List, Tuple
+from numpy import ndarray, asarray
+from typing import List, Tuple, Dict, Any
 from keras.models import load_model, Model
 from keras.preprocessing.image import ImageDataGenerator
 from keras.callbacks import History, ModelCheckpoint, ReduceLROnPlateau
@@ -14,16 +15,16 @@ from batch_generator import batch_generator
 from models.model_keras import edram_model, tedram_model, STN_model, big_STN_model
 
 
-def train(list_params, gpu_id, dataset_id, model_id, load_path, save_path,
-         batch_size, learning_rate, n_epochs, augment_input, rotation, n_steps,
-         glimpse_size, coarse_size, conv_sizes, n_filters, fc_dim, enc_dim, dec_dim,
-         n_classes, output_mode, use_init_matrix, output_emotion_dims, headless,
-         emission_bias, clip_value, unique_emission, unique_glimpse, init_abv,
-         scale_inputs, normalize_inputs, use_batch_norm, dropout,
-         use_weighted_loss, localisation_cost_factor, zoom_factor):
+def train(list_params: List[Any], gpu_id: int, dataset_id: int, model_id: int, load_path: str, save_path: str,
+         batch_size: int, learning_rate: float, n_epochs: int, augment_input: int, rotation: float, n_steps: int,
+         glimpse_size: int, coarse_size: int, conv_sizes, n_filters, fc_dim, enc_dim, dec_dim,
+         n_classes: int, output_mode: int, use_init_matrix: int, output_emotion_dims: int, headless: int,
+         emission_bias: float, clip_value: float, unique_emission: int, unique_glimpse: int, init_abv: int,
+         scale_inputs: float, normalize_inputs: int, use_batch_norm: int, dropout: int,
+         use_weighted_loss: int, localisation_cost_factor: float, zoom_factor: int):
 
-    glimpse_size = (glimpse_size, glimpse_size)
-    coarse_size = (coarse_size, coarse_size)
+    glimpse_size: Tuple[int, int] = (glimpse_size, glimpse_size)
+    coarse_size: Tuple[int, int] = (coarse_size, coarse_size)
 
     # train on ANet or MNIST (0)?
     if dataset_id > 0:
@@ -31,6 +32,7 @@ def train(list_params, gpu_id, dataset_id, model_id, load_path, save_path,
     # train on high-res input?
     if dataset_id<2:
         input_shape = config['input_shape_scene']
+        print('INPUT SHAPE -> TRAIN:', input_shape)
     elif dataset_id==2:
         input_shape = config['input_shape_binocular']
     else:
@@ -47,7 +49,7 @@ def train(list_params, gpu_id, dataset_id, model_id, load_path, save_path,
         exit()
     os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
 
-    # create the EDRAM model
+    # -------------------------- create the EDRAM model
     print("[Info] Creating the model...")
     model: Model = None;
     if (load_path != '.'):
@@ -107,17 +109,27 @@ def train(list_params, gpu_id, dataset_id, model_id, load_path, save_path,
 
     # --------- load the data
     data_path: str = datasets[dataset_id]
-    labels_path: str = datasets[1]
+    labels_path: str = datasets[2]
     print("\n[Info] Opening", data_path)
     data: File = None;
-    labels: List[int] = None;
+    labels: List[Dict[str, int]] = None;
     try:
         data = File(data_path, 'r') ##### HIER MUSS MAN DIE GROUPS
-        with open(labels_path, 'rb') as file:
-            labels = load(file)
     except Exception as e:
-        print("[Error]", e)
+        print("[Error]", e);
+        exit();
+
+    print("\n[Info] Opening", labels_path)
+    try:
+        with open(labels_path, 'rb') as file:
+            labels = load(file);
+        file.close()
+    except Exception as e:
+        print("[Error] Problems by loading from pickle:", e)
         exit()
+    # --------------------------
+    labels: ndarray = asarray(list(labels[0].values()));
+    print(labels)
     # -------------------------------- split into train and test set
     n_train, n_test, t = 0, 0, 0 #type: int, int, int
     if dataset_id==0:
@@ -126,45 +138,26 @@ def train(list_params, gpu_id, dataset_id, model_id, load_path, save_path,
 
     elif dataset_id==1: # define the indices
         n_train = 26788 # 70% of 38352
-        n_test = data['features_data']['sceneDataRight'].shape[0] - n_train # shape the data(38352, 120, 160)
+        n_test = data['features_data']['sceneDataLeft'].shape[0] - n_train # shape the data(38352, 120, 160,1) oder (35268, 120,160,1)
 
-    else:
-        t  = 100000
-        train = data['Train']
-        while train[t] == b'train':
-            t = t+1
-        n_train = t-1
-        n_test = data['Y_lab'].shape[0] - n_train
 
-    train_images, train_labels, train_locations = None, None, None #type: ndarray, ndarray;
+    train_images, train_labels, train_locations, test_locations = None, None, None, None #type: ndarray, ndarray, ndarray, ndarray;
 
-    if dataset_id<2: # define the length of the set according the predefined indices
-        train_images = data['features']['sceneDataRight'][:n_train]
-        #train_labels = data['labels'][:n_train] ## --------------------------- labels
-        train_labels = labels[:n_train]
-        #train_locations = data['locations'][:n_train]
-        if output_emotion_dims:
-            train_dims1 = data['dimensions'][:n_train]
-            train_dims2 = None
-        else:
-            train_dims1 = None
-            train_dims2 = None
+    # ------------------------------- define the length of the set according the predefined indices
+    if dataset_id<2:
+        ### TRAIN DATA
+        train_images = data['features_data']['sceneDataLeft'][:n_train]
+        train_labels = asarray(labels[:n_train]) # --- 0. left_hand, 1. right_hand, 2.left_forearm, 3. right_forearm
 
-        test_images = data['features_data'][n_train:]
-        #test_labels = data['labels'][n_train:]
-        test_labels  = data[:n_train]
-        #test_locations = data['locations'][n_train:]
-        if output_emotion_dims:
-            test_dims1 = data['dimensions'][n_train:]
-            test_dims2 = None
-        else:
-            test_dims1 = None
-            test_dims2 = None
+        ### TEST DATA
+        test_images = data['features_data']['sceneDataLeft'][n_train:]
+        test_labels  = asarray(labels[n_train:])
+
     else:
         n = n_train//1
         train_images = data['X'][:n]
         train_labels = data['Y_lab'][:n]
-        #train_locations = None
+        train_locations = None
         if output_emotion_dims:
             train_dims1 = data['Y_val'][:n]
             train_dims2 = data['Y_ars'][:n]
@@ -212,16 +205,16 @@ def train(list_params, gpu_id, dataset_id, model_id, load_path, save_path,
 
     print("\n[Info] Data Dimensions\n")
     print("  Images:   ", train_images.shape[1], "x", train_images.shape[2], "x", train_images.shape[3])
-    print("  Labels:   ", train_labels.shape[1])
+    print("  Labels:   ", train_labels.shape[0])
     if train_locations is not None:
         print("  Locations:", train_locations.shape[1],"\n")
     else:
         print("  Locations:", 6,"\n")
 
     # create callbacks
-    history = History()
-    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.333, patience=1, min_lr=0.00001, verbose=0)
-    checkpoint = ModelCheckpoint(save_path+'checkpoint_weights.h5', monitor='val_loss', save_best_only=True, save_weights_only=True)
+    history: History = History()
+    reduce_lr: ReduceLROnPlateau = ReduceLROnPlateau(monitor='val_loss', factor=0.333, patience=1, min_lr=0.00001, verbose=0)
+    checkpoint: ModelCheckpoint = ModelCheckpoint(save_path+'checkpoint_weights.h5', monitor='val_loss', save_best_only=True, save_weights_only=True)
 
     # create data generator for data augmentation
     datagen = None

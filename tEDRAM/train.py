@@ -2,6 +2,8 @@ import os
 import random
 import numpy as np
 
+from logging import info, basicConfig, INFO
+basicConfig(filemode='info.log', level=INFO, format='%(levelname)s:%(message)s')
 from h5py import File
 from pickle import dump, load
 from numpy import ndarray, asarray
@@ -141,22 +143,23 @@ def train(list_params: List[Any], gpu_id: int, dataset_id: int, model_id: int, l
         n_test = data['features_data']['sceneDataLeft'].shape[0] - n_train # shape the data(38352, 120, 160,1) oder (35268, 120,160,1)
 
 
-    train_images, train_labels, train_locations, test_locations = None, None, None, None #type: ndarray, ndarray, ndarray, ndarray;
-
+    train_images, train_labels, train_locations = None, None, None #type: ndarray, ndarray, ndarray;
+    test_images, test_labels, test_locations = None, None, None #type: ndarray, ndarray, ndarray
     # ------------------------------- define the length of the set according the predefined indices
     if dataset_id<2:
         ### TRAIN DATA
         train_images = data['features_data']['sceneDataLeft'][:n_train]
         train_labels = asarray(labels[:n_train]) # --- 0. left_hand, 1. right_hand, 2.left_forearm, 3. right_forearm
+        train_locations = None;
 
         ### TEST DATA
         test_images = data['features_data']['sceneDataLeft'][n_train:]
-        test_labels  = asarray(labels[n_train:])
-
+        test_labels = asarray(labels[n_train:])
+        test_locations = None;
     else:
         n = n_train//1
-        train_images = data['X'][:n]
-        train_labels = data['Y_lab'][:n]
+        train_images = data['features_data']['sceneDataRigth'][:n_train]
+        train_labels = asarray(labels[:n_train])  # --- 0. left_hand, 1. right_hand, 2.left_forearm, 3. right_forearm
         train_locations = None
         if output_emotion_dims:
             train_dims1 = data['Y_val'][:n]
@@ -166,8 +169,8 @@ def train(list_params: List[Any], gpu_id: int, dataset_id: int, model_id: int, l
         else:
             train_dims1 = None
             train_dims2 = None
-        test_images = data['X'][n_train:]
-        test_labels = data['Y_lab'][n_train:]
+        train_images = data['features_data']['sceneDataLeft'][:n_train]
+        train_labels = asarray(labels[:n_train])  # --- 0. left_hand, 1. right_hand, 2.left_forearm, 3. right_forearm
         test_locations = None
         if output_emotion_dims:
             test_dims1 = data['Y_val'][n_train:]
@@ -179,6 +182,9 @@ def train(list_params: List[Any], gpu_id: int, dataset_id: int, model_id: int, l
             test_dims2 = None
 
     # normalize input data
+    samples: ndarray = None;
+    indices: List[int] = None;
+
     if normalize_inputs:
         indices = list(range(n_train))
         random.shuffle(indices)
@@ -219,7 +225,7 @@ def train(list_params: List[Any], gpu_id: int, dataset_id: int, model_id: int, l
     # create data generator for data augmentation
     datagen = None
     if augment_input:
-        datagen = ImageDataGenerator(rotation_range=int(20*rotation),
+        datagen: ImageDataGenerator = ImageDataGenerator(rotation_range=int(20*rotation),
                                  width_shift_range=(0.05+0.10 if dataset_id==1 else 0)*rotation,
                                  height_shift_range=(0.05+0.10 if dataset_id==1 else 0)*rotation,
                                  zoom_range=(0.10+0.10 if dataset_id==1 else 0)*rotation,
@@ -228,6 +234,25 @@ def train(list_params: List[Any], gpu_id: int, dataset_id: int, model_id: int, l
                                  fill_mode='nearest')
 
     # train the model
+    info('created variable: {} type:{} and value: {}'.format('n_train', type(n_train), n_train))
+    info('created variable: {} type:{} and value: {}'.format('n_test',type(n_test), n_test))
+    info('created variable: {} type:{} and value: {}'.format('batch_size',type(batch_size), batch_size))
+    info('created variable: {} type:{} and value: {}'.format('n_steps',type(n_steps), n_steps))
+    info('created variable: {} type:{} and value: {}'.format('train_images',type(train_images), train_images))
+    info('created variable: {} type:{} and value: {}'.format('train_labels',type(train_labels), train_labels))
+    info('created variable: {} type:{} and value: {}'.format('train_locations',type(train_locations), train_locations))
+    info('created variable: {} type:{} and value: {}'.format('datagen',type(datagen), datagen))
+    info('created variable: {} type:{} and value: {}'.format('scale_inputs',type(scale_inputs), scale_inputs))
+    info('created variable: {} type:{} and value: {}'.format('normalize_inputs',type(normalize_inputs), normalize_inputs))
+    info('created variable: {} type:{} and value: {}'.format('train_mean',type(train_mean), train_mean))
+    info('created variable: {} type:{} and value: {}'.format('train_sd',type(train_sd), train_sd))
+    info('created variable: {} type:{} and value: {}'.format('output_mode',type(output_mode), output_mode))
+    info('created variable: {} type:{} and value: {}'.format('use_init_matrix',type(use_init_matrix), use_init_matrix))
+    info('created variable: {} type:{} and value: {}'.format('headless',type(headless), headless))
+    info('created variable: {} type:{} and value: {}'.format('model_id',type(model_id), model_id))
+    info('created variable: {} type:{} and value: {}'.format('glimpse_size',type(glimpse_size), glimpse_size))
+    info('created variable: {} type:{} and value: {}'.format('zoom_factor',type(zoom_factor), zoom_factor))
+
     try:
         hist = model.fit_generator(
             batch_generator(n_train, batch_size, (enc_dim, dec_dim), n_steps,

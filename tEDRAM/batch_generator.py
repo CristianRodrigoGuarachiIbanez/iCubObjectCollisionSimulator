@@ -5,22 +5,26 @@
 import random
 from typing import Tuple, List, Generator, Dict
 from sequenceGenerator import SequenceGenerator
+from logging import info, basicConfig, INFO
+basicConfig(filemode='info.log', level=INFO, format='%(levelname)s:%(message)s')
+from sequenceConstructor import SequenceConstructor
+from keras.preprocessing.image import ImageDataGenerator
 from numpy import ndarray, array, asarray, zeros, ones, hstack, reshape
 
-def batch_generator(dataset_size: int, batch_size: int, init_state_size: Tuple, n_steps: int, features: ndarray,
-                    labels: ndarray, dims1, dims2, locations, augment, scale, normalize, mean, std,
-                    mode, mode2, mode3, model_id, glimpse_size, zoom):
+def batch_generator(dataset_size: int, batch_size: int, init_state_size: Tuple[int, int], n_steps: int, features: ndarray,
+                    labels: ndarray, dims1:ndarray, dims2: ndarray, locations: ndarray, augment: ImageDataGenerator,
+                    scale: float, normalize: int, mean, std: ndarray, mode: int, mode2: int, mode3: int,
+                    model_id: int, glimpse_size: Tuple[int, int], zoom: float) -> Tuple[Dict, Dict]:
 
-    state_size_1, state_size_2 = init_state_size
-
-    #indices = list(range(dataset_size))
-    #random.shuffle(indices)
-    indices: SequenceGenerator = SequenceGenerator(dataset_size//10, 10);
+    state_size_1, state_size_2 = init_state_size #type: int, int
+    trial_size: int = 10;
+    indices: SequenceConstructor = SequenceConstructor(dataset_size, trial_size)
     inputs: Dict[str, ndarray] = None;
     outputs: Dict[str, ndarray] = None;
-    start, end = 0, 0 #type: int, int
+    start, end = 0, 0 #type: int, int;
+
     # iterate over the minibatches
-    i: int = 0
+    i: int = 0;
     while True:
 
         # select the sample indices
@@ -29,7 +33,6 @@ def batch_generator(dataset_size: int, batch_size: int, init_state_size: Tuple, 
         #samples = sorted(indices[start:end])
 
         # prepare the minibatch
-
         # input image
         I: ndarray = None;
 
@@ -67,7 +70,7 @@ def batch_generator(dataset_size: int, batch_size: int, init_state_size: Tuple, 
             B6 = ones((batch_size, 4, 4, 1), dtype='float32')
         # target outputs
         Y_dim, Y_loc, Y_cla = None, None, None; #type: ndarray, ndarray, ndarray
-        #Y_cla = array(labels[samples, ...], dtype='float32')
+
         Y_cla = indices.samples(labels, start, end)
 
         if dims1 is not None:
@@ -80,9 +83,15 @@ def batch_generator(dataset_size: int, batch_size: int, init_state_size: Tuple, 
                 #Y_dim = array(hstack(indices.samples(dims1, start, end), indices.samples(dims2, start, end)), dtype='float32')
                 pass
         if zoom==1:
-            #Y_loc = array(locations[samples, ...], dtype='float32')
-            print('LOCATION GENERATOR:',locations)
-            Y_loc = indices.samples(locations, start, end)
+
+            print('Y LOCATION GENERATOR:{}'.format(locations))
+            if(locations is None):
+                Y_loc = zeros((batch_size, 6), dtype='float32')
+                Y_loc[:, (0, 4)] = zoom
+                print("Y LOCATION BATCH GENERATOR:{}".format(Y_loc))
+            else:
+                Y_loc = indices.samples(locations, start, end);
+
         else:
             Y_loc = zeros((batch_size,6), dtype='float32')
             Y_loc[:,(0,4)] = zoom
@@ -92,6 +101,7 @@ def batch_generator(dataset_size: int, batch_size: int, init_state_size: Tuple, 
         if (mode):
             Y_loc = reshape(Y_loc, (batch_size,1,6))
             Y_loc = hstack([Y_loc for i in range(0, n_steps+mode2)])
+            info('RESHAPE Y LOC:', Y_loc)
             if n_steps>1 and not mode3:
                 Y_cla = reshape(Y_cla, (batch_size,1,Y_cla.shape[1]))
                 Y_cla = hstack([Y_cla for i in range(0, n_steps)])
@@ -101,12 +111,15 @@ def batch_generator(dataset_size: int, batch_size: int, init_state_size: Tuple, 
 
         i +=1
 
-        if (batch_size*(i+1) > len(indices.getSequenceList())):
+        if (batch_size*(i+1) > len(indices.getMatrix())):
             i = 0
-
+        info('VARIABLE "I": {}, VALUE:{}'.format(I, I.shape))
+        info('VARIABLE "Y CLASSIFICATION": {}, VALUE:{}'.format(Y_cla, Y_cla.shape))
+        info('VARIABLE "Y LOCALIZATION": {}, VALUE:{}'.format(Y_loc, Y_loc.shape))
         if augment is not None:
-            for I in augment.flow(I, batch_size=batch_size, shuffle=False):
-                break
+            #for I in augment.flow(I, batch_size=batch_size, shuffle=False):
+            #   break
+            pass
 
         if(model_id==1 or model_id==2):
             inputs = {'input_image': I, 'input_matrix': A,

@@ -1,3 +1,12 @@
+
+'''
+    File name: imageEditor.py
+    Author: Cristian R. Guarachi Ibanez
+    Date created: 01.05.2021
+    Date last modified: 10.06.2021
+    Python Version: 3.8
+'''
+
 from productBuilder import ProductBuilder;
 from os import listdir, getcwd;
 from filesExtensionClassifier import FilesExtensionClassifier

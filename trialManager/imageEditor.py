@@ -1,3 +1,11 @@
+'''
+    File name: imageEditor.py
+    Author: Cristian R. Guarachi Ibanez
+    Date created: 01.06.2021
+    Date last modified: 09.06.2021
+    Python Version: 3.8
+'''
+
 from numpy import ndarray, array, asarray, append, round, hstack, mean, newaxis, reshape
 from matplotlib.pyplot import hist, title, show, plot
 from cv2 import imread, imshow, waitKey, destroyAllWindows,calcHist, resize, convertScaleAbs, equalizeHist, createCLAHE, \

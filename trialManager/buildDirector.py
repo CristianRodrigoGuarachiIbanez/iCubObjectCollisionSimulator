@@ -1,6 +1,6 @@
 
 '''
-    File name: imageEditor.py
+    File name: buildDirector.py
     Author: Cristian R. Guarachi Ibanez
     Date created: 01.05.2021
     Date last modified: 10.06.2021
